@@ -1,4 +1,6 @@
 //jshint esversion:6
+
+require('dotenv').config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
@@ -7,6 +9,7 @@ const mongoose = require("mongoose");
 const encrypt = require("mongoose-encryption");
 
 const app = express();
+
 
 
 app.use(express.static("public"));
@@ -25,8 +28,7 @@ const userSchema = new mongoose.Schema({
 
 // create encrypt -mongoose
 
-const secret = "Thisisourlittlesecret."; // type whatever SINGLE text
-userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"] }); //use encrypt PLUGIN  they allow for applying pre-packaged capabilities to extend their functionality.
+userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"] }); //use encrypt PLUGIN  they allow for applying pre-packaged capabilities to extend their functionality.
 //also we are Encrypted Only password Field
 
 
