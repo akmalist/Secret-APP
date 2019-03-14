@@ -51,7 +51,8 @@ mongoose.set("useCreateIndex", true);
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
-  googleId: String //this will help to not to make a new database and id everytime when the user uses to login or register using google service)
+  googleId: String, //this will help to not to make a new database and id everytime when the user uses to login or register using google service)
+  secret:String
 });
 
 // pluging passport
@@ -107,6 +108,17 @@ function(accessToken, refreshToken, profile, cb) {
 }
 ));
 
+//Letting users to submit Secrets
+app.get("/submit", function(req,res){
+  //* check to make sure that the user is loged
+  if(req.isAuthenticated()){
+    //use submit button
+    res.render("/submit");
+  }else{
+    res.redirect("/login");
+  }
+});
+
 
 ///////////////////////////GET REQUETS////////////////////////////
 app.get("/", function(req, res) {
@@ -125,17 +137,25 @@ app.get("/register", function(req, res) {
 
 //we will check if the user is authenticated and if so we will give access to secrets page
 app.get("/secrets",function(req,res){
-  if(req.isAuthenticated()){
-    res.render("secrets");
+
+  // if(req.isAuthenticated()){
+  //   res.render("secrets");
+  // }else{
+  //   res.redirect("/login");
+  // }
+
+  // Now we want to anyone to see our secret page
+// not null like this  {$ne: null}
+User.find({"secret":{$ne:null}},function(err,foundUser){
+  if(err){
+    console.log(err);
   }else{
-    res.redirect("/login");
+    if(foundUser){
+    res.render("secrets",{usersWithSecrets:foundUser});
   }
+}
 });
 
-////////////////////////////LOG OUT///////////////
-app.get('/logout', function(req, res){
-  req.logout();
-  res.redirect('/');
 });
 
 
@@ -164,6 +184,13 @@ app.get('/auth/google/secrets',
     });
 
 
+
+    ////////////////////////////LOG OUT///////////////
+app.get('/logout', function(req, res){
+  req.logout();
+  res.redirect('/');
+});
+
 /////////////////////////POST REQUEST////////////////////////
 
 
@@ -181,6 +208,26 @@ res.redirect("/");
    });
  }
  });
+
+ //create post request for submut action
+ app.post("/submit", function(req,res){
+   const submittedSecret = req.user.secret;
+   //passport will creat Id for each user created account
+    console.log(req.user.id);
+   User.findById(req.user.id, function(err, foundUser){
+     if(err){
+       res.render(err);
+     }else{
+       if(foundUser){
+       foundUser.secret=submited.Secret;
+       foundUser.save(function(){
+         res.redirect("/secrets");
+       });
+     }
+   }
+   });
+ });
+
 
   //using bcrypt
 
