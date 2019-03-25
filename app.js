@@ -102,28 +102,46 @@ passport.use(new FacebookStrategy({
   callbackURL: "http://localhost:3000/auth/facebook/secrets"
 },
 function(accessToken, refreshToken, profile, cb) {
+  console.log(profile);
   User.findOrCreate({ facebookId: profile.id }, function (err, user) {
     return cb(err, user);
   });
 }
 ));
 
-//Letting users to submit Secrets
-app.get("/submit", function(req,res){
-  //* check to make sure that the user is loged
-  if(req.isAuthenticated()){
-    //use submit button
-    res.render("/submit");
-  }else{
-    res.redirect("/login");
-  }
-});
 
 
 ///////////////////////////GET REQUETS////////////////////////////
 app.get("/", function(req, res) {
   res.render("home");
 });
+
+
+//Google Authenticate Requests
+
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }));
+
+app.get('/auth/google/secrets',
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  function(req, res) {
+    // Successful authentication, redirect secrtes.
+    res.redirect('/secrets');
+  });
+
+
+
+// Facebook Authenticate Requests
+  app.get('/auth/facebook',
+    passport.authenticate('facebook'));
+
+  app.get('/auth/facebook/secrets',
+    passport.authenticate('facebook', { failureRedirect: '/login' }),
+    function(req, res) {
+      // Successful authentication, redirect secrets.
+      res.redirect('/secrets');
+    });
+
+
 
 app.get("/login", function(req, res) {
   res.render("login");
@@ -158,43 +176,49 @@ User.find({"secret":{$ne:null}},function(err,foundUser){
 
 });
 
-
-//Google Authenticate Requests
-
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }));
-
-app.get('/auth/google/secrets',
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  function(req, res) {
-    // Successful authentication, redirect secrtes.
-    res.redirect('/secrets');
-  });
-
-
-
-// Facebook Authenticate Requests
-  app.get('/auth/facebook',
-    passport.authenticate('facebook'));
-
-  app.get('/auth/facebook/secrets',
-    passport.authenticate('facebook', { failureRedirect: '/login' }),
-    function(req, res) {
-      // Successful authentication, redirect secrets.
-      res.redirect('/secrets');
-    });
-
-
-
-    ////////////////////////////LOG OUT///////////////
-app.get('/logout', function(req, res){
-  req.logout();
-  res.redirect('/');
+app.get("/submit", function(req, res){
+  if (req.isAuthenticated()){
+    res.render("submit");
+  } else {
+    res.redirect("/login");
+  }
 });
+
+
+
 
 /////////////////////////POST REQUEST////////////////////////
 
 
 //create post request using passport
+
+
+
+ app.post("/submit", function(req, res){
+   const submittedSecret = req.body.secret;
+
+ //Once the user is authenticated and their session gets saved, their user details are saved to req.user.
+   // console.log(req.user.id);
+
+   User.findById(req.user.id, function(err, foundUser){
+     if (err) {
+       console.log(err);
+     } else {
+       if (foundUser) {
+         foundUser.secret = submittedSecret;
+         foundUser.save(function(){
+           res.redirect("/secrets");
+         });
+       }
+     }
+   });
+ });
+
+ ////////////////////////////LOG OUT///////////////
+app.get('/logout', function(req, res){
+req.logout();
+res.redirect('/');
+});
 
 app.post("/register", function(req, res) {
 
@@ -207,25 +231,6 @@ res.redirect("/");
      res.redirect("/secrets"); //will create and send the cookie
    });
  }
- });
-
- //create post request for submut action
- app.post("/submit", function(req,res){
-   const submittedSecret = req.user.secret;
-   //passport will creat Id for each user created account
-    console.log(req.user.id);
-   User.findById(req.user.id, function(err, foundUser){
-     if(err){
-       res.render(err);
-     }else{
-       if(foundUser){
-       foundUser.secret=submited.Secret;
-       foundUser.save(function(){
-         res.redirect("/secrets");
-       });
-     }
-   }
-   });
  });
 
 
